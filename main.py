@@ -6,9 +6,9 @@ import calendar
 def ajustar_fin_de_semana(fecha):
     """Ajusta la fecha si cae en fin de semana, moviendo al viernes anterior"""
     dia_semana = fecha.weekday()
-    if dia_semana == 5: 
+    if dia_semana == 5:  # Sábado
         fecha = fecha - timedelta(days=1)
-    elif dia_semana == 6:  
+    elif dia_semana == 6:  # Domingo
         fecha = fecha - timedelta(days=2)
     return fecha
 
@@ -22,19 +22,20 @@ def calcular_fechas_pago(fecha_inicio, fecha_fin):
         year = fecha_actual.year
         month = fecha_actual.month
         
-
+        # Pago del día 15
         fecha_15 = datetime(year, month, 15)
         if fecha_inicio <= fecha_15 <= fecha_fin:
             fecha_15_ajustada = ajustar_fin_de_semana(fecha_15)
             fechas_pago.append(fecha_15_ajustada)
         
-
+        # Pago de fin de mes (último día del mes)
         ultimo_dia = calendar.monthrange(year, month)[1]
         fecha_fin_mes = datetime(year, month, ultimo_dia)
         if fecha_inicio <= fecha_fin_mes <= fecha_fin:
             fecha_fin_mes_ajustada = ajustar_fin_de_semana(fecha_fin_mes)
             fechas_pago.append(fecha_fin_mes_ajustada)
         
+        # Siguiente mes
         if month == 12:
             fecha_actual = datetime(year + 1, 1, 1)
         else:
@@ -43,29 +44,43 @@ def calcular_fechas_pago(fecha_inicio, fecha_fin):
     return sorted(list(set(fechas_pago)))
 
 def calcular_semanas(fecha_inicio, fecha_fin):
+    """Calcula el número de semanas entre dos fechas"""
     diferencia = fecha_fin - fecha_inicio
     semanas = diferencia.days // 7
     return semanas
 
-
+# Configuración de la página
 st.set_page_config(
     page_title="Calculadora de Pagos Quincenales",
     page_icon="📅",
     layout="wide"
 )
 
+# CSS personalizado
 st.markdown("""
 <style>
     .main-title {
         font-size: 2.5rem;
         font-weight: bold;
-        color: #ffffff;
         margin-bottom: 0.5rem;
     }
     .subtitle {
         font-size: 1.1rem;
-        color: #6b7280;
         margin-bottom: 2rem;
+    }
+    /* Modo claro */
+    [data-testid="stAppViewContainer"] .main-title {
+        color: #1f2937;
+    }
+    [data-testid="stAppViewContainer"] .subtitle {
+        color: #6b7280;
+    }
+    /* Modo oscuro */
+    [data-theme="dark"] .main-title {
+        color: #f9fafb;
+    }
+    [data-theme="dark"] .subtitle {
+        color: #d1d5db;
     }
     .metric-card {
         padding: 2rem;
@@ -109,6 +124,10 @@ st.markdown("""
         display: flex;
         flex-direction: column;
     }
+    [data-theme="dark"] .month-box {
+        background: #1f2937;
+        border-color: #374151;
+    }
     .month-title {
         text-align: center;
         font-weight: bold;
@@ -116,6 +135,9 @@ st.markdown("""
         margin-bottom: 10px;
         color: #1f2937;
         flex-shrink: 0;
+    }
+    [data-theme="dark"] .month-title {
+        color: #f9fafb;
     }
     .cal-grid {
         display: grid;
@@ -131,6 +153,9 @@ st.markdown("""
         font-size: 0.8rem;
         padding: 5px;
         color: #6b7280;
+    }
+    [data-theme="dark"] .cal-day-header {
+        color: #9ca3af;
     }
     .cal-day {
         display: flex;
@@ -193,15 +218,17 @@ with col2:
         format="DD/MM/YYYY"
     )
 
-
+# Convertir a datetime
 fecha_inicio = datetime.combine(fecha_inicio, datetime.min.time())
 fecha_fin = datetime.combine(fecha_fin, datetime.min.time())
 
 if fecha_inicio < fecha_fin:
+    # Calcular
     semanas = calcular_semanas(fecha_inicio, fecha_fin)
     fechas_pago = calcular_fechas_pago(fecha_inicio, fecha_fin)
     num_pagos = len(fechas_pago)
     
+    # Mostrar resultados con tarjetas
     st.markdown("---")
     col1, col2 = st.columns(2)
     
@@ -223,9 +250,11 @@ if fecha_inicio < fecha_fin:
         </div>
         """, unsafe_allow_html=True)
     
+    # Calendario
     st.markdown("---")
     st.markdown("### 📆 Calendario de Pagos")
-
+    
+    # Leyenda
     st.markdown("""
     <div class="legend-container">
         <div class="legend-item">
@@ -243,6 +272,7 @@ if fecha_inicio < fecha_fin:
     </div>
     """, unsafe_allow_html=True)
     
+    # Generar meses a mostrar
     meses = []
     fecha_actual = fecha_inicio.replace(day=1)
     
@@ -256,14 +286,17 @@ if fecha_inicio < fecha_fin:
         else:
             fecha_actual = datetime(year, month + 1, 1)
     
+    # Convertir fechas de pago a conjunto
     fechas_pago_set = {fecha.date() for fecha in fechas_pago}
     
+    # Nombres de meses en español
     meses_esp = {
         1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril',
         5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto',
         9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
     }
     
+    # Crear calendarios en columnas
     num_cols = 3
     for i in range(0, len(meses), num_cols):
         cols = st.columns(num_cols)
@@ -273,23 +306,23 @@ if fecha_inicio < fecha_fin:
                 with cols[j]:
                     mes_nombre = meses_esp[month]
                     
-
+                    # Obtener información del mes
                     primer_dia_semana = calendar.monthrange(year, month)[0]
                     dias_en_mes = calendar.monthrange(year, month)[1]
                     primer_dia_semana = (primer_dia_semana + 1) % 7
                     
-
+                    # Construir calendario HTML
                     cal_html = f'<div class="month-box"><div class="month-title">{mes_nombre} {year}</div><div class="cal-grid">'
                     
-
+                    # Headers
                     for dia in ['D', 'L', 'M', 'M', 'J', 'V', 'S']:
                         cal_html += f'<div class="cal-day-header">{dia}</div>'
                     
-
+                    # Días vacíos
                     for _ in range(primer_dia_semana):
                         cal_html += '<div class="cal-day"></div>'
                     
-
+                    # Días del mes
                     for dia in range(1, dias_en_mes + 1):
                         fecha = datetime(year, month, dia).date()
                         es_pago = fecha in fechas_pago_set
@@ -308,18 +341,18 @@ if fecha_inicio < fecha_fin:
                     cal_html += '</div></div>'
                     st.markdown(cal_html, unsafe_allow_html=True)
     
-
+    # Lista de fechas de pago
     st.markdown("---")
     st.markdown("### 📋 Fechas de Pago Detalladas")
     
-
+    # Traducción de días
     dias_esp = {
         'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles',
         'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado',
         'Sunday': 'Domingo'
     }
     
-
+    # Crear DataFrame
     df_pagos = pd.DataFrame({
         'No.': range(1, len(fechas_pago) + 1),
         'Fecha': [fecha.strftime('%d/%m/%Y') for fecha in fechas_pago],
@@ -329,7 +362,7 @@ if fecha_inicio < fecha_fin:
     
     st.dataframe(df_pagos, use_container_width=True, hide_index=True)
     
-
+    # Botón de descarga
     csv = df_pagos.to_csv(index=False, encoding='utf-8-sig')
     st.download_button(
         label="📥 Descargar fechas de pago (CSV)",
