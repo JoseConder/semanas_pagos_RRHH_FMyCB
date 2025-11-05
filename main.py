@@ -44,9 +44,10 @@ def calcular_fechas_pago(fecha_inicio, fecha_fin):
     return sorted(list(set(fechas_pago)))
 
 def calcular_semanas(fecha_inicio, fecha_fin):
-    """Calcula el número de semanas entre dos fechas"""
-    diferencia = fecha_fin - fecha_inicio
-    semanas = diferencia.days // 7
+    """Cuenta semanas basándose en número de lunes en el período"""
+    dias_totales = (fecha_fin - fecha_inicio).days + 1  # +1 para incluir el último día
+    dias_hasta_lunes = (7 - fecha_inicio.weekday()) % 7
+    semanas = 1 + ((dias_totales - dias_hasta_lunes - 1) // 7)
     return semanas
 
 # Configuración de la página
